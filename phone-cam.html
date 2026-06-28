@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Parkify Camera</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0f172a; color:#fff; font-family:sans-serif; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+        video { width:100%; flex:1; object-fit:cover; }
+        .bar { background:#1e293b; padding:10px 16px; display:flex; align-items:center; gap:10px; }
+        .dot { width:10px; height:10px; border-radius:50%; background:#ef4444; }
+        .dot.on { background:#10b981; animation:pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+        .label { font-size:13px; font-weight:600; }
+        .info  { font-size:11px; color:#94a3b8; margin-left:auto; }
+        .err   { background:#7f1d1d; padding:10px; font-size:12px; text-align:center; display:none; }
+    </style>
+</head>
+<body>
+    <div class="bar">
+        <div class="dot" id="dot"></div>
+        <span class="label" id="label">جاري الاتصال...</span>
+        <span class="info"  id="info">0 frames</span>
+    </div>
+    <div class="err" id="err"></div>
+    <video id="cam" autoplay playsinline muted></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const pcIP  = new URLSearchParams(location.search).get('ip') || location.hostname;
+        const fps   = Math.min(parseInt(new URLSearchParams(location.search).get('fps') || '5'), 15);
+        const WS_URL = `ws://${pcIP}:8765`;
+
+        const dot    = document.getElementById('dot');
+        const label  = document.getElementById('label');
+        const info   = document.getElementById('info');
+        const errDiv = document.getElementById('err');
+        const video  = document.getElementById('cam');
+        const canvas = document.getElementById('canvas');
+        const ctx    = canvas.getContext('2d');
+        canvas.width = 640; canvas.height = 480;
+
+        let ws, sent = 0, timer = null;
+
+        function connect() {
+            ws = new WebSocket(WS_URL);
+            ws.binaryType = 'arraybuffer';
+            ws.onopen  = () => {
+                dot.className = 'dot on';
+                label.textContent = 'كاميرا متصلة ✓';
+                errDiv.style.display = 'none';
+                clearInterval(timer);
+                timer = setInterval(sendFrame, 1000 / fps);
+            };
+            ws.onclose = () => {
+                dot.className = 'dot';
+                label.textContent = 'انقطع — إعادة المحاولة...';
+                clearInterval(timer);
+                setTimeout(connect, 3000);
+            };
+            ws.onerror = () => {
+                errDiv.style.display = 'block';
+                errDiv.textContent = `تأكد أن camera_server.py شغال على ${pcIP}:8765`;
+            };
+        }
+
+        function sendFrame() {
+            if (!ws || ws.readyState !== WebSocket.OPEN || video.readyState < 2) return;
+            ctx.drawImage(video, 0, 0, 640, 480);
+            canvas.toBlob(blob => {
+                blob.arrayBuffer().then(buf => {
+                    // Prefix: 1 byte cam ID = 1
+                    const packet = new Uint8Array(1 + buf.byteLength);
+                    packet[0] = 1;
+                    packet.set(new Uint8Array(buf), 1);
+                    ws.send(packet.buffer);
+                    info.textContent = `${++sent} frames`;
+                });
+            }, 'image/jpeg', 0.75);
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode:'environment', width:{ideal:640}, height:{ideal:480} },
+                    audio: false
+                });
+                video.srcObject = stream;
+            } catch(e) {
+                errDiv.style.display = 'block';
+                errDiv.textContent = 'خطأ في الكاميرا: ' + e.message;
+            }
+        }
+
+        connect();
+        startCamera();
+    </script>
+</body>
+</html>

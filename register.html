@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parkify - Create Account</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="login-page">
+    <div class="login-wrapper">
+        <div class="header-section">
+            <div class="logo-box">
+                <span class="logo-letter">P</span>
+            </div>
+            <h1>Parkify</h1>
+            <p>Grand Mall Parking Management</p>
+        </div>
+        <div class="login-card">
+            <h2>Create Account</h2>
+            <p class="subtitle">Join our smart parking system</p>
+
+            <!-- Error / Success messages -->
+            <div id="errorMsg"   style="display:none; background:#fee2e2; color:#dc2626; padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:14px; border:1px solid #fca5a5;"></div>
+            <div id="successMsg" style="display:none; background:#d1fae5; color:#059669; padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:14px; border:1px solid #6ee7b7;"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-container">
+                        <i class="fa-regular fa-user input-icon"></i>
+                        <input type="text" id="username" placeholder="Enter your name" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-container">
+                        <i class="fa-regular fa-envelope input-icon"></i>
+                        <input type="email" id="email" placeholder="Enter your email" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-container">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="password" placeholder="Create a password" required>
+                        <i class="fa-regular fa-eye toggle-password" id="togglePassword"></i>
+                    </div>
+                </div>
+                <button type="submit" class="sign-in-btn">Register</button>
+            </form>
+            <div style="text-align: center; margin-top: 20px;">
+                <p style="color: #6b7280; font-size: 14px;">
+                    Already have an account? <a href="login.html" style="color: #6b21a8; text-decoration: none; font-weight: 600;">Log In</a>
+                </p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Parkify. All rights reserved.</p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
