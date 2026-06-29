@@ -290,7 +290,7 @@
                                 <div class="stat-icon blue"><i class="fa-solid fa-video"></i></div>
                             </div>
                             <p class="stat-label">Active Cameras</p>
-                            <h2 class="stat-value" id="statCameras">3</h2>
+                            <h2 class="stat-value" id="statCameras">1</h2>
                         </div>
                         <div class="stat-card">
                             <div class="stat-header">
@@ -383,7 +383,7 @@
                     <div class="page-header">
                         <div>
                             <h1>Parking Spots</h1>
-                            <p>Prototype - Ground Floor (8 Spots Allocated)</p>
+                            <p id="parkingSpotsSubtitle">Ground Floor</p>
                         </div>
                         <div class="header-actions">
                             <button class="action-btn-primary" onclick="openAddSpotModal()"><i class="fa-solid fa-plus"></i> Add Spot</button>
@@ -580,80 +580,33 @@
                             <div class="f-stat-icon blue"><i class="fa-solid fa-building"></i></div>
                             <div class="f-stat-info">
                                 <span class="f-stat-label">Total Floors</span>
-                                <h2 class="f-stat-value">1</h2>
+                                <h2 class="f-stat-value" id="foTotalFloors">1</h2>
                             </div>
                         </div>
                         <div class="f-stat-card">
                             <div class="f-stat-icon green"><i class="fa-solid fa-car-side"></i></div>
                             <div class="f-stat-info">
                                 <span class="f-stat-label">Total Capacity</span>
-                                <h2 class="f-stat-value">8</h2>
+                                <h2 class="f-stat-value" id="foTotalCapacity">—</h2>
                             </div>
                         </div>
                         <div class="f-stat-card">
                             <div class="f-stat-icon purple"><i class="fa-solid fa-square-parking"></i></div>
                             <div class="f-stat-info">
                                 <span class="f-stat-label">Available Now</span>
-                                <h2 class="f-stat-value">8</h2>
+                                <h2 class="f-stat-value" id="foAvailableNow">—</h2>
                             </div>
                         </div>
                         <div class="f-stat-card">
                             <div class="f-stat-icon orange"><i class="fa-solid fa-chart-pie"></i></div>
                             <div class="f-stat-info">
                                 <span class="f-stat-label">Overall Occupancy</span>
-                                <h2 class="f-stat-value">0%</h2>
+                                <h2 class="f-stat-value" id="foOccupancy">0%</h2>
                             </div>
                         </div>
                     </div>
-                    <div class="floor-cards-grid">
-                        <div class="floor-card">
-                            <div class="floor-card-header">
-                                <div class="floor-card-icon"><i class="fa-solid fa-building"></i></div>
-                                <h3>Ground Floor</h3>
-                                <p>Level G</p>
-                            </div>
-                            <div class="floor-card-body">
-                                <div class="floor-metrics">
-                                    <div class="metric">
-                                        <span class="m-label">Total</span>
-                                        <span class="m-value">8</span>
-                                    </div>
-                                    <div class="metric">
-                                        <span class="m-label">Available</span>
-                                        <span class="m-value text-green">8</span>
-                                    </div>
-                                    <div class="metric">
-                                        <span class="m-label">Occupied</span>
-                                        <span class="m-value text-red">0</span>
-                                    </div>
-                                </div>
-                                <div class="floor-progress-sec">
-                                    <div class="fp-labels">
-                                        <span>Occupancy Rate</span>
-                                        <span class="fp-percentage">0%</span>
-                                    </div>
-                                    <div class="fp-bar">
-                                        <div class="fp-fill" style="width: 0%;"></div>
-                                    </div>
-                                </div>
-                                <div class="floor-tags-sec">
-                                    <h4>Zones</h4>
-                                    <div class="tags-container">
-                                        <span class="f-tag">Zone A</span>
-                                    </div>
-                                </div>
-                                <div class="floor-tags-sec">
-                                    <h4>Features</h4>
-                                    <div class="tags-container">
-                                        <span class="f-tag blue-tag">Main Entrance</span>
-                                        <span class="f-tag blue-tag">Mall Access</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="floor-card-footer">
-                                <a href="#" class="view-floor-btn" onclick="document.querySelector('[data-target=\'parkingSpotsView\']').click();">View Floor Details &rarr;</a>
-                            </div>
-                        </div>
+                    <div class="floor-cards-grid" id="floorCardsGrid">
+                        <!-- rendered dynamically by renderFloorStatus() -->
                     </div>
                 </div>
 
@@ -849,7 +802,7 @@
                             <h1>Reports</h1>
                             <p>Generate and download detailed reports</p>
                         </div>
-                        <button class="action-btn-primary"><i class="fa-solid fa-file-invoice"></i> Generate New Report</button>
+                        <button class="action-btn-primary" onclick="generateReport()"><i class="fa-solid fa-file-invoice"></i> Generate New Report</button>
                     </div>
                     <div class="reports-stats">
                         <div class="r-stat-card">
@@ -885,38 +838,9 @@
                         <h3>Recent Reports</h3>
                     </div>
                     <div class="recent-reports-grid" id="recentReportsContainer">
-                        <div class="report-card template-card">
-                            <div class="report-card-top">
-                                <div class="report-icon green-light"><i class="fa-solid fa-file-lines"></i></div>
-                                <div class="report-info">
-                                    <h4>[Report Title]</h4>
-                                    <p>[Report Description / Details]</p>
-                                    <span class="report-meta">[Date] • [Size MB]</span>
-                                </div>
-                            </div>
-                            <div class="report-card-actions">
-                                <button class="btn-primary-full"><i class="fa-solid fa-download"></i> Download</button>
-                                <button class="btn-outline-gray">View</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="section-title-wrapper flex-between">
-                        <h3>Scheduled Reports</h3>
-                        <a href="#" class="text-blue text-sm fw-600">Manage Schedule</a>
-                    </div>
-                    <div class="scheduled-list" id="scheduledReportsContainer">
-                        <div class="scheduled-item template-item">
-                            <div class="s-item-left">
-                                <div class="s-icon blue-light"><i class="fa-regular fa-calendar"></i></div>
-                                <div class="s-info">
-                                    <h4>[Schedule Name]</h4>
-                                    <p>[Frequency Details]</p>
-                                </div>
-                            </div>
-                            <div class="s-item-right">
-                                <span class="v-status inactive">[Status]</span>
-                                <button class="icon-btn-small"><i class="fa-regular fa-file-alt"></i></button>
-                            </div>
+                        <div class="empty-reports-msg" style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">
+                            <i class="fa-solid fa-file-circle-plus" style="font-size:36px;margin-bottom:12px;display:block;"></i>
+                            No reports yet. Click "Generate New Report" to create one.
                         </div>
                     </div>
                     <div class="custom-report-banner">

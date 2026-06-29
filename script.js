@@ -371,14 +371,69 @@ function renderFloorStatus(slots) {
     slots.forEach(s => {
         const floorNum = s.floor || 1;
         const floorName = floorNum === 1 ? 'Ground Floor' : `Level ${floorNum}`;
-        if (!floorMap[floorName]) floorMap[floorName] = { name: floorName, floor: floorNum, total: 0, available: 0, occupied: 0 };
+        if (!floorMap[floorName]) floorMap[floorName] = { name: floorName, floor: floorNum, total: 0, available: 0, occupied: 0, reserved: 0 };
         floorMap[floorName].total++;
         const st = (s.status || 'available').toLowerCase();
-        if (st === 'available') floorMap[floorName].available++;
-        else floorMap[floorName].occupied++;
+        if (['occupied', 'taken'].includes(st)) floorMap[floorName].occupied++;
+        else if (['reserved', 'booked'].includes(st)) floorMap[floorName].reserved++;
+        else if (st !== 'maintenance') floorMap[floorName].available++;
     });
     const floors = Object.values(floorMap).sort((a, b) => a.floor - b.floor);
     if (!floors.length) return;
+
+    // Update Floor Overview stat cards from API data
+    const totalCapacity = slots.length;
+    const totalAvailable = slots.filter(s => {
+        const st = (s.status || 'available').toLowerCase();
+        return !['occupied', 'taken', 'reserved', 'booked', 'maintenance'].includes(st);
+    }).length;
+    const totalOccupied = slots.filter(s => ['occupied', 'taken'].includes((s.status || '').toLowerCase())).length;
+    const totalReserved = slots.filter(s => ['reserved', 'booked'].includes((s.status || '').toLowerCase())).length;
+    const occ = totalCapacity ? Math.round(((totalOccupied + totalReserved) / totalCapacity) * 100) : 0;
+    const el = id => document.getElementById(id);
+    if (el('foTotalFloors'))   el('foTotalFloors').textContent   = floors.length;
+    if (el('foTotalCapacity')) el('foTotalCapacity').textContent = totalCapacity;
+    if (el('foAvailableNow'))  el('foAvailableNow').textContent  = totalAvailable;
+    if (el('foOccupancy'))     el('foOccupancy').textContent     = `${occ}%`;
+
+    // Render floor cards dynamically
+    const cardsGrid = document.getElementById('floorCardsGrid');
+    if (cardsGrid) {
+        cardsGrid.innerHTML = floors.map(f => {
+            const fpct = f.total ? Math.round(((f.occupied + f.reserved) / f.total) * 100) : 0;
+            const barColor = fpct > 80 ? '#ef4444' : fpct > 50 ? '#f59e0b' : '#10b981';
+            const levelLabel = f.floor === 1 ? 'Level G' : `Level ${f.floor}`;
+            return `
+            <div class="floor-card">
+                <div class="floor-card-header">
+                    <div class="floor-card-icon"><i class="fa-solid fa-building"></i></div>
+                    <h3>${f.name}</h3>
+                    <p>${levelLabel}</p>
+                </div>
+                <div class="floor-card-body">
+                    <div class="floor-metrics">
+                        <div class="metric"><span class="m-label">Total</span><span class="m-value">${f.total}</span></div>
+                        <div class="metric"><span class="m-label">Available</span><span class="m-value text-green">${f.available}</span></div>
+                        <div class="metric"><span class="m-label">Reserved</span><span class="m-value" style="color:#f59e0b;">${f.reserved}</span></div>
+                        <div class="metric"><span class="m-label">Occupied</span><span class="m-value text-red">${f.occupied}</span></div>
+                    </div>
+                    <div class="floor-progress-sec">
+                        <div class="fp-labels">
+                            <span>Occupancy Rate</span>
+                            <span class="fp-percentage" style="color:${barColor}">${fpct}%</span>
+                        </div>
+                        <div class="fp-bar">
+                            <div class="fp-fill" style="width:${fpct}%;background:${barColor};"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="floor-card-footer">
+                    <a href="#" class="view-floor-btn" onclick="document.querySelector('[data-target=\\'parkingSpotsView\\']').click();">View Floor Details &rarr;</a>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
     floorList.innerHTML = floors.map(f => {
         const pct = f.total ? Math.round((f.occupied / f.total) * 100) : 0;
         const barColor = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#059669';
@@ -458,6 +513,13 @@ async function loadParkingSpots() {
         currentParkingId = parking.id || parking.parking_id || PARKING_ID;
         if (parking.device_key) currentDeviceKey = parking.device_key;
         localStorage.setItem('parkify_parking_id', currentParkingId);
+        // Update subtitle from API data
+        const subtitle = document.getElementById('parkingSpotsSubtitle');
+        if (subtitle) {
+            const name  = parking.name  || parking.parking_name  || 'Parking';
+            const floor = parking.floor || parking.floor_name    || 'Ground Floor';
+            subtitle.textContent = `${name} - ${floor}`;
+        }
 
         // Try slots API
         let allSlots = [];
@@ -512,6 +574,12 @@ async function loadParkingSpots() {
             const htmlId = slotNum ? `parking_1_slot_${slotNum.padStart(2,'0')}` : (s.slot_id || s.id || '');
             if (htmlId) prevSlotStatuses[htmlId] = (s.status || '').toLowerCase();
         });
+        // Update subtitle with actual slot count from API
+        if (subtitle) {
+            const name  = parking.name  || parking.parking_name  || 'Parking';
+            const floor = parking.floor || parking.floor_name    || 'Ground Floor';
+            subtitle.textContent = `${name} - ${floor} (${allSlots.length} Spots Allocated)`;
+        }
         updateSpotsGrid(allSlots);
         updateSpotStats(allSlots);
         initSpotModal();
@@ -541,7 +609,8 @@ function updateSpotsGrid(slots) {
         const slot = slotMap[boxId];
         if (!slot) return;
         const status = (slot.status || 'available').toLowerCase();
-        const displayName = slot.slot_number || (boxId.includes('_slot_') ? boxId.split('_slot_')[1] : boxId);
+        const rawNum = slot.slot_number ? String(slot.slot_number).padStart(2,'0') : (boxId.includes('_slot_') ? boxId.split('_slot_')[1] : boxId);
+        const displayName = rawNum;
         const statusMap = { available: 'free', occupied: 'taken', reserved: 'reserved', maintenance: 'maintenance' };
         const cssClass = statusMap[status] || 'free';
         const label = status.charAt(0).toUpperCase() + status.slice(1);
@@ -857,6 +926,7 @@ function initDashboardUI() {
             if (targetId === 'parkingSpotsView' || targetId === 'floorOverviewView') await loadParkingSpots();
             if (targetId === 'parkingSpotsView') startVehicleLogsPolling();
             if (targetId === 'analyticsView') await loadAnalytics();
+            if (targetId === 'reportsView') loadReports();
         });
     });
     initSpotModal();
@@ -1759,6 +1829,72 @@ function navigateTo(section) {
 }
 
 
+function loadReports() {
+    const reports = JSON.parse(localStorage.getItem('parkify_reports') || '[]');
+    const container = document.getElementById('recentReportsContainer');
+    if (!container) return;
+
+    // Update stats
+    const vals = document.querySelectorAll('.r-stat-value');
+    const thisMonth = reports.filter(r => {
+        const d = new Date(r.date);
+        const n = new Date();
+        return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
+    }).length;
+    const totalDownloads = reports.reduce((s, r) => s + (r.downloads || 0), 0);
+    if (vals[0]) vals[0].textContent = reports.length;
+    if (vals[1]) vals[1].textContent = totalDownloads;
+    if (vals[2]) vals[2].textContent = 0;
+    if (vals[3]) vals[3].textContent = thisMonth;
+
+    if (!reports.length) {
+        container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">
+            <i class="fa-solid fa-file-circle-plus" style="font-size:36px;margin-bottom:12px;display:block;"></i>
+            No reports yet. Click "Generate New Report" to create one.
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = reports.slice().reverse().map(r => `
+        <div class="report-card">
+            <div class="report-card-top">
+                <div class="report-icon green-light"><i class="fa-solid fa-file-lines"></i></div>
+                <div class="report-info">
+                    <h4>${r.title}</h4>
+                    <p>${r.description}</p>
+                    <span class="report-meta">${new Date(r.date).toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} • ${r.size}</span>
+                </div>
+            </div>
+            <div class="report-card-actions">
+                <button class="btn-primary-full" onclick="downloadReport('${r.id}')"><i class="fa-solid fa-download"></i> Download</button>
+                <button class="btn-outline-gray" onclick="viewReport('${r.id}')">View</button>
+            </div>
+        </div>`).join('');
+}
+
+function downloadReport(id) {
+    const reports = JSON.parse(localStorage.getItem('parkify_reports') || '[]');
+    const report = reports.find(r => r.id === id);
+    if (!report) return;
+    report.downloads = (report.downloads || 0) + 1;
+    localStorage.setItem('parkify_reports', JSON.stringify(reports));
+    const blob = new Blob([report.htmlContent], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${report.title.replace(/\s+/g, '_')}.html`;
+    a.click();
+    loadReports();
+}
+
+function viewReport(id) {
+    const reports = JSON.parse(localStorage.getItem('parkify_reports') || '[]');
+    const report = reports.find(r => r.id === id);
+    if (!report) return;
+    const win = window.open('', '_blank');
+    win.document.write(report.htmlContent);
+    win.document.close();
+}
+
 async function generateReport() {
     let bookings = [], alerts = [];
     try { const d = await apiFetch('/api/v1/admin/bookings'); bookings = d?.data || d?.bookings || d || []; } catch(e) {}
@@ -1825,6 +1961,21 @@ async function generateReport() {
     <h3>Alerts (${todayAlerts.length})</h3>
     ${todayAlerts.length ? `<table><thead><tr><th>Type</th><th>Severity</th><th>Message</th><th>Status</th><th>Time</th></tr></thead><tbody>${alertRows}</tbody></table>` : '<p style="color:#94a3b8;">No alerts today.</p>'}
     </body></html>`;
+
+    // Save report to localStorage
+    const reports = JSON.parse(localStorage.getItem('parkify_reports') || '[]');
+    const reportEntry = {
+        id: Date.now().toString(),
+        title: `Daily Report — ${today.toLocaleDateString('en-GB')}`,
+        description: `${todayBookings.length} bookings · ${revenue.toFixed(0)} EGP revenue · ${todayAlerts.length} alerts`,
+        date: today.toISOString(),
+        size: `${(new Blob([html]).size / 1024).toFixed(1)} KB`,
+        downloads: 0,
+        htmlContent: html
+    };
+    reports.push(reportEntry);
+    localStorage.setItem('parkify_reports', JSON.stringify(reports));
+    loadReports();
 
     const w = window.open('', '_blank');
     w.document.write(html);
