@@ -192,13 +192,17 @@ function initDashboardCharts() {
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 }, x: { ticks: { maxTicksLimit: 8 } } } }
     });
 
+    const last7Labels = Array.from({length: 7}, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (6 - i));
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
     revenueChartObj = new Chart(revCanvas, {
         type: 'bar',
         data: {
-            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-            datasets: [{ data: [0,0,0,0,0,0,0], backgroundColor: '#059669', borderRadius: 6 }]
+            labels: last7Labels,
+            datasets: [{ data: Array(7).fill(0), backgroundColor: '#059669', borderRadius: 6 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
     });
 }
 
@@ -209,20 +213,23 @@ function updateChartsFromBookings(bookings) {
 
 function updateRevenueChart(bookings) {
     if (!revenueChartObj) return;
-    const revenue = [0,0,0,0,0,0,0];
     const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    startOfWeek.setHours(0,0,0,0);
-    bookings.forEach(b => {
-        if (!['active', 'completed'].includes(b.status)) return;
-        const dateField = b.created_at;
-        if (!dateField) return;
-        const d = new Date(dateField);
-        if (d < startOfWeek) return;
-        const idx = (d.getDay() + 6) % 7;
-        revenue[idx] += Number(b.amount || b.total_amount || 0);
+    // Build last 7 days array (index 0 = 6 days ago, index 6 = today)
+    const days = Array.from({length: 7}, (_, i) => {
+        const d = new Date(now); d.setDate(now.getDate() - (6 - i)); d.setHours(0,0,0,0);
+        return d;
     });
+    const labels = days.map(d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    const revenue = Array(7).fill(0);
+    bookings.forEach(b => {
+        if (!['active', 'completed', 'checked_in'].includes((b.status || '').toLowerCase())) return;
+        const dateField = b.created_at || b.start_time;
+        if (!dateField) return;
+        const d = new Date(dateField); d.setHours(0,0,0,0);
+        const idx = days.findIndex(day => day.getTime() === d.getTime());
+        if (idx !== -1) revenue[idx] += Number(b.amount || b.total_amount || 0);
+    });
+    revenueChartObj.data.labels = labels;
     revenueChartObj.data.datasets[0].data = revenue;
     revenueChartObj.update('none');
 }
@@ -302,9 +309,7 @@ function renderDashboardStats(data) {
     // statAvailable is updated by updateSpotStats (parking-specific source of truth)
     if (el('statOccupancy')) el('statOccupancy').innerHTML = `${occ}% <span class="stat-sub">Overall</span>`;
     if (el('statVisitors'))  el('statVisitors').innerHTML  = `${visitors} <span class="stat-sub">Currently</span>`;
-    if (el('statRevenue') && stats.today_revenue !== undefined) {
-        el('statRevenue').innerHTML = `${Number(stats.today_revenue).toFixed(0)} EGP <span class="stat-sub">Today</span>`;
-    }
+    // statRevenue is calculated from bookings by updateRevenueFromBookings (check-in only)
 
     const pFill = document.querySelector('.progress-fill');
     const pText = document.querySelector('.progress-text');
@@ -316,8 +321,17 @@ function renderDashboardStats(data) {
 }
 
 function updateRevenueFromBookings(bookings) {
-    // statRevenue is owned by the dashboard API (renderDashboardStats).
-    // Do not overwrite it here to avoid replacing the server value with a local calculation.
+    // Count revenue only from bookings that have been checked in (active or completed)
+    const today = new Date().toDateString();
+    const todayRevenue = bookings
+        .filter(b => {
+            const st = (b.status || '').toLowerCase();
+            if (!['active', 'completed', 'checked_in'].includes(st)) return false;
+            return b.created_at && new Date(b.created_at).toDateString() === today;
+        })
+        .reduce((sum, b) => sum + Number(b.amount || b.total_amount || 0), 0);
+    const el = document.getElementById('statRevenue');
+    if (el) el.innerHTML = `${todayRevenue.toFixed(0)} EGP <span class="stat-sub">Today</span>`;
 }
 
 async function loadDashboardStats() {
