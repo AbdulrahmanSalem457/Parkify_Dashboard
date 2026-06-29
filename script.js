@@ -1834,6 +1834,17 @@ function navigateTo(section) {
 }
 
 
+function showPhoneCamQR() {
+    const wsUrl = CAMERA_WS_URL.replace(/^https?:\/\//, '');
+    const phoneUrl = `https://abdulrahamsalem457.github.io/Parkify_Dashboard/phone-cam.html?ws=${wsUrl}`;
+    const container = document.getElementById('phoneCamQRCode');
+    const urlLabel  = document.getElementById('phoneCamQRUrl');
+    container.innerHTML = '';
+    new QRCode(container, { text: phoneUrl, width: 200, height: 200 });
+    if (urlLabel) urlLabel.textContent = phoneUrl;
+    document.getElementById('phoneCamQRModal').style.display = 'flex';
+}
+
 function saveCameraUrls() {
     const http = document.getElementById('camHttpUrl').value.trim().replace(/\/$/, '');
     const ws   = document.getElementById('camWsUrl').value.trim().replace(/\/$/, '');

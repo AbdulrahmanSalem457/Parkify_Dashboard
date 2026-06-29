@@ -38,6 +38,7 @@
         .spot-box.maintenance .spot-footer { background: #64748b !important; color: #fff !important; }
         .spot-box.maintenance .spot-icon i { color: #94a3b8 !important; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="dashboard-page">
     <div class="layout">
@@ -346,7 +347,7 @@
                                              onload="setCamOnline(true);">
                                         <script>
                                             document.getElementById('aiCamFeed').src =
-                                                'http://' + location.hostname + ':5000/video_feed';
+                                                (localStorage.getItem('parkify_cam_http') || 'https://isa-mechanisms-conferences-headed.trycloudflare.com') + '/video_feed';
                                         </script>
                                         <div id="aiCamOffline" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:200px;flex-direction:column;gap:10px;position:absolute;top:0;left:0;">
                                             <i class="fa-solid fa-video-slash" style="font-size:2rem;color:#4b5563;"></i>
@@ -369,7 +370,7 @@
                                         <p class="cam-location"><i class="fa-solid fa-location-dot"></i> Ground Floor — Entrance</p>
                                         <div class="cam-footer-row">
                                             <span><i class="fa-solid fa-brain"></i> Fire + Weapon AI</span>
-                                            <span>Python Server</span>
+                                            <button onclick="showPhoneCamQR()" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;"><i class="fa-solid fa-qrcode"></i> Use Phone as Camera</button>
                                         </div>
                                     </div>
                                 </div>
@@ -1129,6 +1130,17 @@
                 <span class="last-updated">Last updated: <span class="liveTime">--:--:--</span></span>
                 <button class="btn-primary-small" id="closeModalFooterBtn">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Phone Cam QR Modal -->
+    <div id="phoneCamQRModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;" onclick="this.style.display='none'">
+        <div style="background:#fff;border-radius:16px;padding:32px;text-align:center;max-width:320px;width:90%;" onclick="event.stopPropagation()">
+            <h3 style="margin:0 0 6px;font-size:1.1rem;color:#1e293b;">Scan to use Phone as Camera</h3>
+            <p style="margin:0 0 20px;font-size:12px;color:#64748b;">Open on your phone and allow camera access</p>
+            <div id="phoneCamQRCode" style="display:flex;justify-content:center;"></div>
+            <p id="phoneCamQRUrl" style="margin:16px 0 0;font-size:10px;color:#94a3b8;word-break:break-all;"></p>
+            <button onclick="document.getElementById('phoneCamQRModal').style.display='none'" style="margin-top:16px;padding:8px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;cursor:pointer;">Close</button>
         </div>
     </div>
 
