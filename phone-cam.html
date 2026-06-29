@@ -28,9 +28,11 @@
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        const pcIP  = new URLSearchParams(location.search).get('ip') || location.hostname;
-        const fps   = Math.min(parseInt(new URLSearchParams(location.search).get('fps') || '5'), 15);
-        const WS_URL = `ws://${pcIP}:8765`;
+        const fps = Math.min(parseInt(new URLSearchParams(location.search).get('fps') || '5'), 15);
+        // Use wss:// tunnel URL if provided via ?ws= param, otherwise fall back to local
+        const wsParam = new URLSearchParams(location.search).get('ws');
+        const pcIP    = new URLSearchParams(location.search).get('ip') || location.hostname;
+        const WS_URL  = wsParam ? `wss://${wsParam}` : `ws://${pcIP}:8765`;
 
         const dot    = document.getElementById('dot');
         const label  = document.getElementById('label');

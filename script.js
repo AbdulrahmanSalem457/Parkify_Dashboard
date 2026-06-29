@@ -3,6 +3,10 @@ const PARKING_ID = 'parking_1';
 const DEVICE_KEY = 'my_secret_key_123';
 let currentDeviceKey = DEVICE_KEY;
 
+// Camera server URLs (Cloudflare Tunnel) — update these when tunnel restarts
+let CAMERA_HTTP_URL = localStorage.getItem('parkify_cam_http') || 'https://isa-mechanisms-conferences-headed.trycloudflare.com';
+let CAMERA_WS_URL   = localStorage.getItem('parkify_cam_ws')   || 'https://lifestyle-processor-studios-appearing.trycloudflare.com';
+
 const CACHE = {
     dashboard: 'pkfy_dashboard',
     slots: 'pkfy_slots',
@@ -927,6 +931,7 @@ function initDashboardUI() {
             if (targetId === 'parkingSpotsView') startVehicleLogsPolling();
             if (targetId === 'analyticsView') await loadAnalytics();
             if (targetId === 'reportsView') loadReports();
+            if (targetId === 'settingsView') loadSettingsPage();
         });
     });
     initSpotModal();
@@ -1438,7 +1443,7 @@ function openCamFullscreen() {
     const modal  = document.getElementById('cameraModal');
     const stream = document.getElementById('modalCamStream');
     if (!modal || !stream) return;
-    stream.src = 'http://' + location.hostname + ':5000/video_feed';
+    stream.src = CAMERA_HTTP_URL + '/video_feed';
     modal.style.display = 'flex';
     document.onkeydown = e => { if (e.key === 'Escape') closeCameraModal(); };
 }
@@ -1594,7 +1599,7 @@ function triggerCameraAlertOverlay(alert) {
 let _lastCamAlertTs = 0;
 
 function startCameraStatusPoll() {
-    const base = 'http://' + location.hostname + ':5000/status';
+    const base = CAMERA_HTTP_URL + '/status';
     setInterval(async () => {
         try {
             const res  = await fetch(base, { cache: 'no-store' });
@@ -1828,6 +1833,22 @@ function navigateTo(section) {
     if (link) link.click();
 }
 
+
+function saveCameraUrls() {
+    const http = document.getElementById('camHttpUrl').value.trim().replace(/\/$/, '');
+    const ws   = document.getElementById('camWsUrl').value.trim().replace(/\/$/, '');
+    if (http) { CAMERA_HTTP_URL = http; localStorage.setItem('parkify_cam_http', http); }
+    if (ws)   { CAMERA_WS_URL   = ws;   localStorage.setItem('parkify_cam_ws',   ws);   }
+    const saved = document.getElementById('camUrlSaved');
+    if (saved) { saved.style.display = 'inline'; setTimeout(() => saved.style.display = 'none', 2000); }
+}
+
+function loadSettingsPage() {
+    const httpInput = document.getElementById('camHttpUrl');
+    const wsInput   = document.getElementById('camWsUrl');
+    if (httpInput) httpInput.value = CAMERA_HTTP_URL;
+    if (wsInput)   wsInput.value   = CAMERA_WS_URL;
+}
 
 function loadReports() {
     const reports = JSON.parse(localStorage.getItem('parkify_reports') || '[]');

@@ -938,6 +938,27 @@
                             </div>
                             <div class="settings-card">
                                 <div class="s-card-header">
+                                    <div class="s-icon" style="background:#ede9fe;"><i class="fa-solid fa-camera" style="color:#7c3aed;"></i></div>
+                                    <div>
+                                        <h4>Camera Server (Cloudflare Tunnel)</h4>
+                                        <p>Update URLs when tunnel restarts</p>
+                                    </div>
+                                </div>
+                                <div class="s-card-body">
+                                    <div class="s-field">
+                                        <label>Video & Status URL (port 5000)</label>
+                                        <input type="text" id="camHttpUrl" placeholder="https://xxx.trycloudflare.com" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;margin-top:4px;">
+                                    </div>
+                                    <div class="s-field" style="margin-top:12px;">
+                                        <label>WebSocket URL (port 8765)</label>
+                                        <input type="text" id="camWsUrl" placeholder="https://yyy.trycloudflare.com" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;margin-top:4px;">
+                                    </div>
+                                    <button onclick="saveCameraUrls()" style="margin-top:14px;padding:8px 20px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">Save URLs</button>
+                                    <span id="camUrlSaved" style="display:none;margin-left:10px;color:#10b981;font-size:13px;">Saved!</span>
+                                </div>
+                            </div>
+                            <div class="settings-card">
+                                <div class="s-card-header">
                                     <div class="s-icon purple-light"><i class="fa-regular fa-bell"></i></div>
                                     <div>
                                         <h4>Notification Preferences</h4>
