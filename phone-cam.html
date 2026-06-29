@@ -41,7 +41,7 @@
         const video  = document.getElementById('cam');
         const canvas = document.getElementById('canvas');
         const ctx    = canvas.getContext('2d');
-        canvas.width = 640; canvas.height = 480;
+        canvas.width = 320; canvas.height = 240;
 
         let ws, sent = 0, timer = null;
 
@@ -69,7 +69,7 @@
 
         function sendFrame() {
             if (!ws || ws.readyState !== WebSocket.OPEN || video.readyState < 2) return;
-            ctx.drawImage(video, 0, 0, 640, 480);
+            ctx.drawImage(video, 0, 0, 320, 240);
             canvas.toBlob(blob => {
                 blob.arrayBuffer().then(buf => {
                     // Prefix: 1 byte cam ID = 1
@@ -79,7 +79,7 @@
                     ws.send(packet.buffer);
                     info.textContent = `${++sent} frames`;
                 });
-            }, 'image/jpeg', 0.75);
+            }, 'image/jpeg', 0.5);
         }
 
         async function startCamera() {
