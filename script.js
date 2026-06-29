@@ -1119,7 +1119,164 @@ function initSpotModal() {
     applySpotFilter();
 }
 
-async function loadAnalytics() {}
+let analyticsCharts = {};
+
+async function loadAnalytics() {
+    try {
+        const data = await apiFetch('/api/v1/admin/bookings');
+        if (!data) return;
+        const bookings = data.data || data.bookings || data;
+        if (!Array.isArray(bookings)) return;
+
+        const now = new Date();
+        const msMonth = 30 * 24 * 60 * 60 * 1000;
+
+        // Split into current period (0-3 months) and previous period (3-6 months)
+        const current = bookings.filter(b => {
+            const d = new Date(b.created_at);
+            return (now - d) <= 3 * msMonth;
+        });
+        const previous = bookings.filter(b => {
+            const d = new Date(b.created_at);
+            const diff = now - d;
+            return diff > 3 * msMonth && diff <= 6 * msMonth;
+        });
+
+        const sumRevenue = arr => arr.reduce((s, b) => s + Number(b.amount || b.total_amount || 0), 0);
+        const avgDuration = arr => arr.length ? arr.reduce((s, b) => s + Number(b.total_hours || 0), 0) / arr.length : 0;
+        const pct = (cur, prev) => prev === 0 ? 0 : ((cur - prev) / prev * 100);
+
+        const curRev  = sumRevenue(current);
+        const prevRev = sumRevenue(previous);
+        const curBook  = current.length;
+        const prevBook = previous.length;
+        const curDur  = avgDuration(current);
+        const prevDur = avgDuration(previous);
+
+        const trendText = (val, suffix = '') => {
+            const sign = val >= 0 ? '+' : '';
+            return `${sign}${val.toFixed(1)}%${suffix} from last period`;
+        };
+        const setTrend = (elId, iconId, val) => {
+            const el = document.getElementById(elId);
+            const icon = document.getElementById(iconId);
+            if (!el) return;
+            const up = val >= 0;
+            el.textContent = trendText(val);
+            el.className = `a-stat-trend ${up ? 'text-green' : 'text-red'}`;
+            if (icon) {
+                icon.className = `fa-solid ${up ? 'fa-arrow-trend-up text-green' : 'fa-arrow-trend-down text-red'}`;
+            }
+        };
+
+        const elRev  = document.getElementById('analyticsRevenue');
+        const elBook = document.getElementById('analyticsBookings');
+        const elDur  = document.getElementById('analyticsDuration');
+        if (elRev)  elRev.textContent  = `${curRev.toFixed(0)} EGP`;
+        if (elBook) elBook.textContent = curBook;
+        if (elDur)  elDur.textContent  = `${curDur.toFixed(1)} hrs`;
+        setTrend('analyticsTrendRev',  'analyticsTrendRevIcon',  pct(curRev, prevRev));
+        setTrend('analyticsTrendBook', 'analyticsTrendBookIcon', pct(curBook, prevBook));
+        setTrend('analyticsTrendDur',  'analyticsTrendDurIcon',  pct(curDur, prevDur));
+
+        // ── Revenue & Bookings Trend (last 6 months) ─────────────────────────
+        const months = [];
+        const revenueByMonth = [];
+        const bookingsByMonth = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const label = d.toLocaleString('en-US', { month: 'short' });
+            months.push(label);
+            const inMonth = bookings.filter(b => {
+                const bd = new Date(b.created_at);
+                return bd.getFullYear() === d.getFullYear() && bd.getMonth() === d.getMonth();
+            });
+            revenueByMonth.push(sumRevenue(inMonth));
+            bookingsByMonth.push(inMonth.length);
+        }
+
+        const destroyChart = key => { if (analyticsCharts[key]) { analyticsCharts[key].destroy(); delete analyticsCharts[key]; } };
+
+        destroyChart('trend');
+        const trendCtx = document.getElementById('revenueTrendChart');
+        if (trendCtx) {
+            analyticsCharts.trend = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'bookings',
+                            data: bookingsByMonth,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99,102,241,0.08)',
+                            tension: 0.4,
+                            yAxisID: 'yBook',
+                            pointBackgroundColor: '#6366f1'
+                        },
+                        {
+                            label: 'revenue',
+                            data: revenueByMonth,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.08)',
+                            tension: 0.4,
+                            yAxisID: 'yRev',
+                            pointBackgroundColor: '#10b981'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        yBook: { type: 'linear', position: 'left',  beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        yRev:  { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+        }
+
+        // ── Peak Usage Hours (bar) ────────────────────────────────────────────
+        const hourCounts = Array(24).fill(0);
+        bookings.forEach(b => {
+            if (!b.start_time) return;
+            const h = new Date(b.start_time).getHours();
+            hourCounts[h]++;
+        });
+        const peakLabels = ['6 AM','7 AM','8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM','6 PM','7 PM','8 PM','9 PM','10 PM'];
+        const peakData   = hourCounts.slice(6, 23);
+
+        destroyChart('peak');
+        const peakCtx = document.getElementById('peakHoursChart');
+        if (peakCtx) {
+            analyticsCharts.peak = new Chart(peakCtx, {
+                type: 'bar',
+                data: {
+                    labels: peakLabels,
+                    datasets: [{
+                        label: 'Bookings',
+                        data: peakData,
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }
+                    }
+                }
+            });
+        }
+
+    } catch(err) {}
+}
 
 // ── Live Monitoring — camera status, alerts, fullscreen ───────────────────────
 

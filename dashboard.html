@@ -669,26 +669,26 @@
                         <div class="a-stat-card">
                             <div class="a-stat-header">
                                 <span class="a-stat-title">Total Revenue</span>
-                                <i class="fa-solid fa-arrow-trend-up text-green"></i>
+                                <i id="analyticsTrendRevIcon" class="fa-solid fa-arrow-trend-up text-green"></i>
                             </div>
-                            <h2 class="a-stat-value">0 EGP</h2>
-                            <span class="a-stat-trend text-green">+0.0% from last period</span>
+                            <h2 class="a-stat-value" id="analyticsRevenue">0 EGP</h2>
+                            <span class="a-stat-trend text-green" id="analyticsTrendRev">+0.0% from last period</span>
                         </div>
                         <div class="a-stat-card">
                             <div class="a-stat-header">
                                 <span class="a-stat-title">Total Bookings</span>
-                                <i class="fa-solid fa-arrow-trend-up text-green"></i>
+                                <i id="analyticsTrendBookIcon" class="fa-solid fa-arrow-trend-up text-green"></i>
                             </div>
-                            <h2 class="a-stat-value">0</h2>
-                            <span class="a-stat-trend text-green">+0.0% from last period</span>
+                            <h2 class="a-stat-value" id="analyticsBookings">0</h2>
+                            <span class="a-stat-trend text-green" id="analyticsTrendBook">+0.0% from last period</span>
                         </div>
                         <div class="a-stat-card">
                             <div class="a-stat-header">
                                 <span class="a-stat-title">Avg. Duration</span>
-                                <i class="fa-solid fa-arrow-trend-down text-red"></i>
+                                <i id="analyticsTrendDurIcon" class="fa-solid fa-arrow-trend-down text-red"></i>
                             </div>
-                            <h2 class="a-stat-value">0.0 hrs</h2>
-                            <span class="a-stat-trend text-red">-0.0% from last period</span>
+                            <h2 class="a-stat-value" id="analyticsDuration">0.0 hrs</h2>
+                            <span class="a-stat-trend text-red" id="analyticsTrendDur">-0.0% from last period</span>
                         </div>
                     </div>
                     <div class="analytics-charts-middle">
@@ -698,14 +698,6 @@
                             </div>
                             <div class="chart-container">
                                 <canvas id="revenueTrendChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="chart-card">
-                            <div class="chart-title">
-                                <h4>Location Distribution</h4>
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="locationPieChart"></canvas>
                             </div>
                         </div>
                     </div>
