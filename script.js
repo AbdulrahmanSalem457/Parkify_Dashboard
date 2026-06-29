@@ -1836,7 +1836,7 @@ function navigateTo(section) {
 
 function showPhoneCamQR() {
     const wsUrl = CAMERA_WS_URL.replace(/^https?:\/\//, '');
-    const phoneUrl = `https://abdulrahamsalem457.github.io/Parkify_Dashboard/phone-cam.html?ws=${wsUrl}`;
+    const phoneUrl = `https://abdulrahmansalem457.github.io/Parkify_Dashboard/phone-cam.html?ws=${wsUrl}`;
     const container = document.getElementById('phoneCamQRCode');
     const urlLabel  = document.getElementById('phoneCamQRUrl');
     container.innerHTML = '';
