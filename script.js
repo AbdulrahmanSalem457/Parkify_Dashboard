@@ -226,7 +226,7 @@ function updateRevenueChart(bookings) {
     const labels = days.map(d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     const revenue = Array(7).fill(0);
     bookings.forEach(b => {
-        if (!['active', 'completed', 'checked_in'].includes((b.status || '').toLowerCase())) return;
+        if ((b.status || '').toLowerCase() !== 'completed') return;
         const dateField = b.created_at || b.start_time;
         if (!dateField) return;
         const d = new Date(dateField); d.setHours(0,0,0,0);
@@ -313,7 +313,7 @@ function renderDashboardStats(data) {
     // statAvailable is updated by updateSpotStats (parking-specific source of truth)
     if (el('statOccupancy')) el('statOccupancy').innerHTML = `${occ}% <span class="stat-sub">Overall</span>`;
     if (el('statVisitors'))  el('statVisitors').innerHTML  = `${visitors} <span class="stat-sub">Currently</span>`;
-    // statRevenue is calculated from bookings by updateRevenueFromBookings (check-in only)
+    // statRevenue is calculated from bookings by updateRevenueFromBookings (check-out / completed only)
 
     const pFill = document.querySelector('.progress-fill');
     const pText = document.querySelector('.progress-text');
@@ -325,9 +325,9 @@ function renderDashboardStats(data) {
 }
 
 function updateRevenueFromBookings(bookings) {
-    // Total revenue from all checked-in bookings (active or completed), all time
+    // Total revenue counted only after check-out (status = completed), all time
     const total = bookings
-        .filter(b => ['active', 'completed', 'checked_in'].includes((b.status || '').toLowerCase()))
+        .filter(b => (b.status || '').toLowerCase() === 'completed')
         .reduce((sum, b) => sum + Number(b.amount || b.total_amount || 0), 0);
     const el = document.getElementById('statRevenue');
     if (el) el.innerHTML = `${total.toFixed(0)} EGP <span class="stat-sub">Total</span>`;
@@ -770,8 +770,8 @@ async function adminCancelBooking(bookingId, slotId) {
 }
 
 function updatePaymentStats(bookings) {
-    const checkedIn = b => ['active', 'completed', 'checked_in'].includes((b.status || '').toLowerCase());
-    const total = bookings.filter(checkedIn).reduce((s, b) => s + Number(b.amount || b.total_amount || 0), 0);
+    const checkedOut = b => (b.status || '').toLowerCase() === 'completed';
+    const total = bookings.filter(checkedOut).reduce((s, b) => s + Number(b.amount || b.total_amount || 0), 0);
     const pending = bookings.filter(b => (b.status || '').toLowerCase() === 'pending').reduce((s, b) => s + Number(b.amount || 0), 0);
     const success = bookings.filter(b => (b.status || '').toLowerCase() === 'completed').length;
     const rate = bookings.length ? Math.round((success / bookings.length) * 100) : 0;
@@ -1227,8 +1227,8 @@ async function loadAnalytics() {
             return diff > 3 * msMonth && diff <= 6 * msMonth;
         });
 
-        const checkedIn = st => ['active', 'completed', 'checked_in'].includes((st || '').toLowerCase());
-        const sumRevenue = arr => arr.filter(b => checkedIn(b.status)).reduce((s, b) => s + Number(b.amount || b.total_amount || 0), 0);
+        const checkedOut = st => (st || '').toLowerCase() === 'completed';
+        const sumRevenue = arr => arr.filter(b => checkedOut(b.status)).reduce((s, b) => s + Number(b.amount || b.total_amount || 0), 0);
         const avgDuration = arr => arr.length ? arr.reduce((s, b) => s + Number(b.total_hours || 0), 0) / arr.length : 0;
         const pct = (cur, prev) => prev === 0 ? 0 : ((cur - prev) / prev * 100);
 
